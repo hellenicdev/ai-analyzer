@@ -1,0 +1,230 @@
+/* style.css */
+
+/* Import fonts */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700&family=Outfit:wght@400;500;700&display=swap');
+
+/* Global Styles */
+body {
+  margin: 0;
+  font-family: 'Manrope', 'Outfit', sans-serif;
+  color: #111;
+  background-color: #fff;
+  line-height: 1.6;
+}
+
+h1, h2, h3 {
+  font-family: 'Outfit', sans-serif;
+  margin: 0 0 1rem 0;
+}
+
+p {
+  margin: 0 0 1rem 0;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #111;
+}
+
+.nav a {
+  margin-left: 2rem;
+  text-decoration: none;
+  color: #111;
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.nav a:hover {
+  color: #0070f3;
+}
+
+/* Hero Section */
+.hero {
+  text-align: center;
+  padding: 6rem 2rem 4rem 2rem;
+  background: linear-gradient(180deg, #f5f5f5, #fff);
+}
+
+.hero h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.hero p {
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hero button {
+  padding: 0.8rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  background-color: #0070f3;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.hero button:hover {
+  background-color: #0059c1;
+}
+
+/* About Section */
+.about {
+  padding: 4rem 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.about h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.about p {
+  text-align: center;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+/* How It Works */
+.how-it-works {
+  padding: 4rem 2rem;
+  background-color: #f9f9f9;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.how-it-works h2 {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.how-it-works ol {
+  list-style: decimal inside;
+  font-size: 1.1rem;
+  color: #333;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* Analysis Section */
+.analysis {
+  padding: 4rem 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.analysis h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+#contract-input {
+  width: 100%;
+  min-height: 200px;
+  padding: 1rem;
+  font-size: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+  resize: vertical;
+}
+
+#submit-btn {
+  display: block;
+  margin: 0 auto;
+  padding: 0.8rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  background-color: #0070f3;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#submit-btn:hover {
+  background-color: #0059c1;
+}
+
+#result {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: #fafafa;
+  min-height: 100px;
+}
+
+/* FAQ Section */
+.faq {
+  padding: 4rem 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.faq h2 {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.faq-item {
+  margin-bottom: 1.5rem;
+}
+
+.faq-item h3 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.faq-item p {
+  color: #555;
+  font-size: 1rem;
+}
+
+/* Footer */
+.footer {
+  padding: 2rem;
+  text-align: center;
+  background-color: #f5f5f5;
+  font-size: 0.9rem;
+  color: #777;
+  margin-top: 2rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .nav a {
+    margin-left: 1rem;
+  }
+
+  .hero h1 {
+    font-size: 2rem;
+  }
+
+  .hero p {
+    font-size: 1rem;
+  }
+}
