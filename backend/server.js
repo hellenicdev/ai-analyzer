@@ -23,7 +23,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     const fileBuffer = req.file.buffer.toString("utf-8");
 
     const response = await axios.post(
-      "https://api-inference.huggingface.co/models/facebook/bart-large-cnn",
+      "https://api-inference.huggingface.co/models/google/flan-t5-base",
       { inputs: fileBuffer.slice(0, 2000) },
       {
         headers: {
