@@ -14,7 +14,7 @@ async function uploadFile() {
   resultDiv.innerText = "Analyzing...";
 
   try {
-    const response = await fetch("https://YOUR-RENDER-URL.onrender.com/upload", {
+    const response = await fetch("https://ai-analyzer-htk8.onrender.com/upload", {
       method: "POST",
       body: formData
     });
