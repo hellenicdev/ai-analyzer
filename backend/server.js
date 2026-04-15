@@ -1,43 +1,40 @@
-import express from "express";
-import fetch from "node-fetch";
-import dotenv from "dotenv";
-import cors from "cors";
+const express = require("express");
+const multer = require("multer");
+const cors = require("cors");
+const axios = require("axios");
+require("dotenv").config();
 
-dotenv.config();
 const app = express();
-const PORT = process.env.PORT || 5000;
-
 app.use(cors());
-app.use(express.json());
 
-app.post("/api/analyze", async (req, res) => {
-  const { contract } = req.body;
-  if (!contract) return res.status(400).json({ error: "No contract provided" });
+const upload = multer({ storage: multer.memoryStorage() });
 
+app.post("/upload", upload.single("file"), async (req, res) => {
   try {
-    const response = await fetch("https://api-inference.huggingface.co/models/meta-llama/Llama-3.1-8B-Instruct", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${process.env.HF_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ inputs: contract })
+    const fileBuffer = req.file.buffer.toString("utf-8");
+
+    // Send to Hugging Face
+    const response = await axios.post(
+      "https://api-inference.huggingface.co/models/facebook/bart-large-cnn",
+      { inputs: fileBuffer.slice(0, 2000) },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.HF_API_KEY}`
+        }
+      }
+    );
+
+    res.json({
+      result: response.data[0]?.summary_text || "No result"
     });
 
-    const hfData = await response.json();
-
-    // Transform HF response
-    const analysis = hfData.map((item, idx) => ({
-      title: item.label || `Item ${idx + 1}`,
-      details: item.score ? `${item.score} - ${item.text || ""}` : item.text || ""
-    }));
-
-    res.json({ analysis });
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Analysis failed" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-app.listen(PORT, () => console.log(`Backend running on port ${PORT}`));
+app.get("/", (req, res) => {
+  res.send("Backend running");
+});
+
+app.listen(3000, () => console.log("Server running on port 3000"));
