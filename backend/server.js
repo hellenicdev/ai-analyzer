@@ -1,19 +1,15 @@
-const express = require("express");
-const multer = require("multer");
-const cors = require("cors");
-const axios = require("axios");
-require("dotenv").config();
-
-const app = express();
-app.use(cors());
-
-const upload = multer({ storage: multer.memoryStorage() });
-
 app.post("/upload", upload.single("file"), async (req, res) => {
   try {
+    console.log("FILES:", req.file);
+
+    if (!req.file) {
+      return res.status(400).json({ error: "No file received" });
+    }
+
     const fileBuffer = req.file.buffer.toString("utf-8");
 
-    // Send to Hugging Face
+    console.log("TEXT LENGTH:", fileBuffer.length);
+
     const response = await axios.post(
       "https://api-inference.huggingface.co/models/facebook/bart-large-cnn",
       { inputs: fileBuffer.slice(0, 2000) },
@@ -25,16 +21,11 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     );
 
     res.json({
-      result: response.data[0]?.summary_text || "No result"
+      result: response.data[0]?.summary_text || response.data
     });
 
   } catch (err) {
+    console.error(err.response?.data || err.message);
     res.status(500).json({ error: err.message });
   }
 });
-
-app.get("/", (req, res) => {
-  res.send("Backend running");
-});
-
-app.listen(3000, () => console.log("Server running on port 3000"));
