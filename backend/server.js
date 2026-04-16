@@ -4,42 +4,92 @@ const cors = require("cors");
 const axios = require("axios");
 require("dotenv").config();
 
-const app = express(); // 🔥 MUST be first
-
+const app = express();
 app.use(cors());
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-app.get("/", (req, res) => {
-  res.send("Backend running");
-});
+const HF_KEY = process.env.HF_API_KEY;
 
+// 🧠 SMART FILE ROUTER
 app.post("/upload", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No file received" });
     }
 
-    const fileBuffer = req.file.buffer.toString("utf-8");
+    const mime = req.file.mimetype;
+    console.log("FILE TYPE:", mime);
+
+    // =========================
+    // 🖼 IMAGE MODE
+    // =========================
+    if (mime.startsWith("image/")) {
+      console.log("Using IMAGE AI mode");
+
+      const base64 = req.file.buffer.toString("base64");
+
+      const response = await axios.post(
+        "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-base",
+        {
+          inputs: base64
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${HF_KEY}`
+          }
+        }
+      );
+
+      return res.json({
+        mode: "image",
+        result: response.data[0]?.generated_text || response.data
+      });
+    }
+
+    // =========================
+    // 📄 TEXT MODE (txt/json/md/doc fallback)
+    // =========================
+
+    const text = req.file.buffer.toString("utf-8");
+
+    if (!text || text.trim().length === 0) {
+      return res.json({
+        result: "⚠️ Could not read file as text. Try a .txt or .json file."
+      });
+    }
+
+    console.log("Using TEXT AI mode");
 
     const response = await axios.post(
       "https://api-inference.huggingface.co/models/google/flan-t5-base",
-      { inputs: fileBuffer.slice(0, 2000) },
+      {
+        inputs: `You are a smart file analyzer. Summarize and explain this file:\n\n${text.slice(0, 2000)}`
+      },
       {
         headers: {
-          Authorization: `Bearer ${process.env.HF_API_KEY}`
+          Authorization: `Bearer ${HF_KEY}`
         }
       }
     );
 
-    res.json({
-      result: response.data[0]?.summary_text || response.data
+    return res.json({
+      mode: "text",
+      result: response.data[0]?.generated_text || response.data
     });
 
   } catch (err) {
-    console.error(err.response?.data || err.message);
-    res.status(500).json({ error: err.message });
+    console.error("ERROR:", err.response?.data || err.message);
+
+    res.status(500).json({
+      error: err.message,
+      details: err.response?.data || null
+    });
   }
+});
+
+app.get("/", (req, res) => {
+  res.send("🧠 Smart AI File Analyzer running");
 });
 
 const PORT = process.env.PORT || 3000;
