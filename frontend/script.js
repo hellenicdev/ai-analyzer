@@ -1,10 +1,10 @@
 async function uploadFile() {
   const fileInput = document.getElementById("fileInput");
-  const statusDiv = document.getElementById("status");
-  const resultDiv = document.getElementById("result");
+  const status = document.getElementById("status");
+  const result = document.getElementById("result");
 
   if (!fileInput.files.length) {
-    alert("Please select a file first!");
+    alert("Select a file first");
     return;
   }
 
@@ -13,7 +13,7 @@ async function uploadFile() {
   const formData = new FormData();
   formData.append("file", file, file.name);
 
-  statusDiv.innerText = "🧠 Uploading...";
+  status.innerText = "Uploading...";
 
   try {
     const res = await fetch("https://ai-analyzer-htk8.onrender.com/upload", {
@@ -23,13 +23,12 @@ async function uploadFile() {
 
     const data = await res.json();
 
-    statusDiv.innerText = "Done ✔";
+    status.innerText = "Done";
 
-    resultDiv.innerText =
-      data.result || JSON.stringify(data, null, 2);
+    result.innerText = data.result || JSON.stringify(data, null, 2);
 
   } catch (err) {
-    statusDiv.innerText = "Error";
-    resultDiv.innerText = err.message;
+    status.innerText = "Error";
+    result.innerText = err.message;
   }
 }
