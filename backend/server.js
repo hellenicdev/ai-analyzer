@@ -9,15 +9,27 @@ app.use(cors());
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-const HF_BASE = "https://api-inference.huggingface.co/models/";
 const HF_KEY = process.env.HF_API_KEY;
 
 // 🧠 HEALTH CHECK
 app.get("/", (req, res) => {
-  res.send("🧠 Smart AI Dashboard Backend Running");
+  res.send("🧠 AI Dashboard Backend Running");
 });
 
-// 📦 SMART UPLOAD ROUTE
+// 🔥 SAFE HF CALL WRAPPER (prevents all URL bugs)
+const hfPost = (model, data) => {
+  return axios.post(
+    `https://api-inference.huggingface.co/models/${model}`,
+    data,
+    {
+      headers: {
+        Authorization: `Bearer ${HF_KEY}`
+      }
+    }
+  );
+};
+
+// 📦 MAIN UPLOAD ROUTE
 app.post("/upload", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) {
@@ -33,15 +45,10 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     if (mime.startsWith("image/")) {
       const base64 = req.file.buffer.toString("base64");
 
-      const response = await axios.post(
-        HF_BASE + "Salesforce/blip-image-captioning-base",
+      const response = await hfPost(
+        "Salesforce/blip-image-captioning-base",
         {
           inputs: base64
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${HF_KEY}`
-          }
         }
       );
 
@@ -59,19 +66,14 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     if (!text || text.trim().length === 0) {
       return res.json({
         mode: "text",
-        result: "⚠️ Could not read file as text. Try TXT / JSON / MD files."
+        result: "⚠️ Unsupported or empty file."
       });
     }
 
-    const response = await axios.post(
-      HF_BASE + "google/flan-t5-base",
+    const response = await hfPost(
+      "google/flan-t5-base",
       {
-        inputs: `You are an AI file analyst. Summarize and explain this file:\n\n${text.slice(0, 2000)}`
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${HF_KEY}`
-        }
+        inputs: `Analyze and summarize this file:\n\n${text.slice(0, 2000)}`
       }
     );
 
