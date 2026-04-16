@@ -1,50 +1,19 @@
-const dropzone = document.getElementById("dropzone");
-const fileInput = document.getElementById("fileInput");
-const resultDiv = document.getElementById("result");
-const statusDiv = document.getElementById("status");
-
-let selectedFile = null;
-
-// CLICK TO SELECT
-dropzone.addEventListener("click", () => fileInput.click());
-
-fileInput.addEventListener("change", () => {
-  selectedFile = fileInput.files[0];
-  statusDiv.innerText = `Selected: ${selectedFile.name}`;
-});
-
-// DRAG & DROP
-dropzone.addEventListener("dragover", (e) => {
-  e.preventDefault();
-  dropzone.style.borderColor = "#fff";
-});
-
-dropzone.addEventListener("dragleave", () => {
-  dropzone.style.borderColor = "#6c63ff";
-});
-
-dropzone.addEventListener("drop", (e) => {
-  e.preventDefault();
-  dropzone.style.borderColor = "#6c63ff";
-
-  selectedFile = e.dataTransfer.files[0];
-  fileInput.files = e.dataTransfer.files;
-
-  statusDiv.innerText = `Selected: ${selectedFile.name}`;
-});
-
-// UPLOAD
 async function uploadFile() {
-  if (!selectedFile) {
-    alert("Pick a file first!");
+  const fileInput = document.getElementById("fileInput");
+  const statusDiv = document.getElementById("status");
+  const resultDiv = document.getElementById("result");
+
+  if (!fileInput.files.length) {
+    alert("Please select a file first!");
     return;
   }
 
-  const formData = new FormData();
-  formData.append("file", selectedFile, selectedFile.name);
+  const file = fileInput.files[0];
 
-  resultDiv.innerText = "";
-  statusDiv.innerText = "🧠 Analyzing...";
+  const formData = new FormData();
+  formData.append("file", file, file.name);
+
+  statusDiv.innerText = "🧠 Uploading...";
 
   try {
     const res = await fetch("https://ai-analyzer-htk8.onrender.com/upload", {
@@ -54,7 +23,7 @@ async function uploadFile() {
 
     const data = await res.json();
 
-    statusDiv.innerText = `Mode: ${data.mode || "unknown"}`;
+    statusDiv.innerText = "Done ✔";
 
     resultDiv.innerText =
       data.result || JSON.stringify(data, null, 2);

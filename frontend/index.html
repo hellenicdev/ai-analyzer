@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>AI File Dashboard</title>
+  <title>AI Dashboard</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -10,20 +10,16 @@
   <div class="app">
 
     <h1>🧠 AI File Dashboard</h1>
-    <p>Drag & drop a file or click to upload</p>
 
-    <!-- DROPZONE -->
-    <div id="dropzone" class="dropzone">
-      <input type="file" id="fileInput" hidden />
-      <p>📂 Drop file here or click to select</p>
-    </div>
+    <!-- FILE INPUT (VISIBLE BUTTON FIX) -->
+    <input type="file" id="fileInput" />
 
+    <br><br>
+
+    <!-- BUTTON (MAKE SURE IT EXISTS) -->
     <button onclick="uploadFile()">Analyze File</button>
 
-    <!-- STATUS -->
     <div id="status"></div>
-
-    <!-- RESULT -->
     <div id="result"></div>
 
   </div>
