@@ -1,24 +1,7 @@
-input {
-  margin: 15px 0;
-}
-
-button {
-  padding: 10px 20px;
-  border: none;
-  background: #6c63ff;
-  color: white;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-button:hover {
-  background: #5a52d4;
-}
-
 body {
   margin: 0;
   font-family: Arial, sans-serif;
-  background: radial-gradient(circle at top, #1b1b2f, #0f0f1a);
+  background: #0f0f1a;
   color: white;
   display: flex;
   justify-content: center;
@@ -26,23 +9,52 @@ body {
   height: 100vh;
 }
 
-.container {
-  background: rgba(255,255,255,0.05);
-  padding: 30px;
-  border-radius: 16px;
-  backdrop-filter: blur(10px);
-  width: 380px;
+.app {
+  width: 420px;
   text-align: center;
-  box-shadow: 0 0 30px rgba(0,0,0,0.4);
+}
+
+.dropzone {
+  margin: 20px 0;
+  padding: 40px;
+  border: 2px dashed #6c63ff;
+  border-radius: 15px;
+  cursor: pointer;
+  transition: 0.3s;
+  background: rgba(255,255,255,0.03);
+}
+
+.dropzone:hover {
+  background: rgba(108,99,255,0.1);
+  transform: scale(1.02);
+}
+
+button {
+  padding: 10px 20px;
+  border: none;
+  background: #6c63ff;
+  color: white;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-top: 10px;
 }
 
 button:hover {
   background: #574fd6;
 }
 
+#status {
+  margin-top: 15px;
+  font-size: 14px;
+  opacity: 0.8;
+}
+
 #result {
   margin-top: 20px;
   text-align: left;
   white-space: pre-wrap;
-  font-size: 14px;
+  background: rgba(255,255,255,0.05);
+  padding: 15px;
+  border-radius: 10px;
+  min-height: 80px;
 }

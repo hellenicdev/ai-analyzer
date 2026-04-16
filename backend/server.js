@@ -9,13 +9,19 @@ app.use(cors());
 
 const upload = multer({ storage: multer.memoryStorage() });
 
+const HF_BASE = "https://api-inference.huggingface.co/models/";
 const HF_KEY = process.env.HF_API_KEY;
 
-// 🧠 SMART FILE ROUTER
+// 🧠 HEALTH CHECK
+app.get("/", (req, res) => {
+  res.send("🧠 Smart AI Dashboard Backend Running");
+});
+
+// 📦 SMART UPLOAD ROUTE
 app.post("/upload", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ error: "No file received" });
+      return res.status(400).json({ error: "No file uploaded" });
     }
 
     const mime = req.file.mimetype;
@@ -25,12 +31,10 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     // 🖼 IMAGE MODE
     // =========================
     if (mime.startsWith("image/")) {
-      console.log("Using IMAGE AI mode");
-
       const base64 = req.file.buffer.toString("base64");
 
       const response = await axios.post(
-        "https://api-inference.huggingface.co/models/Salesforce/blip-image-captioning-base",
+        HF_BASE + "Salesforce/blip-image-captioning-base",
         {
           inputs: base64
         },
@@ -48,23 +52,21 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     }
 
     // =========================
-    // 📄 TEXT MODE (txt/json/md/doc fallback)
+    // 📄 TEXT MODE
     // =========================
-
     const text = req.file.buffer.toString("utf-8");
 
     if (!text || text.trim().length === 0) {
       return res.json({
-        result: "⚠️ Could not read file as text. Try a .txt or .json file."
+        mode: "text",
+        result: "⚠️ Could not read file as text. Try TXT / JSON / MD files."
       });
     }
 
-    console.log("Using TEXT AI mode");
-
     const response = await axios.post(
-      "https://api-inference.huggingface.co/models/google/flan-t5-base",
+      HF_BASE + "google/flan-t5-base",
       {
-        inputs: `You are a smart file analyzer. Summarize and explain this file:\n\n${text.slice(0, 2000)}`
+        inputs: `You are an AI file analyst. Summarize and explain this file:\n\n${text.slice(0, 2000)}`
       },
       {
         headers: {
@@ -81,17 +83,14 @@ app.post("/upload", upload.single("file"), async (req, res) => {
   } catch (err) {
     console.error("ERROR:", err.response?.data || err.message);
 
-    res.status(500).json({
+    return res.status(500).json({
       error: err.message,
       details: err.response?.data || null
     });
   }
 });
 
-app.get("/", (req, res) => {
-  res.send("🧠 Smart AI File Analyzer running");
-});
-
+// 🚀 START SERVER
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
