@@ -26,7 +26,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     const text = req.file.buffer.toString("utf-8");
 
     const HF_URL =
-      "https://api-inference.huggingface.co/models/distilbert-base-uncased-finetuned-sst-2-english";
+      "https://api-inference.huggingface.co/models/facebook/bart-large-cnn";
 
     console.log("CALLING HF:", HF_URL);
 
