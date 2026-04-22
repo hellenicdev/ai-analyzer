@@ -9,62 +9,56 @@ app.use(cors());
 
 const upload = multer({ storage: multer.memoryStorage() });
 
-const HF_API = "https://api-inference.huggingface.co/models/";
-const HF_KEY = process.env.HF_API_KEY;
-
-// 🧪 health check
+// ✅ Health check
 app.get("/", (req, res) => {
-  res.send("AI backend running");
+  res.send("Backend is running");
 });
 
-// 📦 upload route
-app.post("/upload", upload.single("file"), (req, res) => {
+// ✅ Upload route (FULL DEBUG VERSION)
+app.post("/upload", upload.single("file"), async (req, res) => {
   console.log("UPLOAD HIT");
 
-  if (!req.file) {
-    return res.status(400).json({ error: "No file" });
-  }
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
 
-  res.json({
-    ok: true,
-    filename: req.file.originalname,
-    size: req.file.size
-  });
-});
-
-    // ======================
-    // 📄 TEXT MODE
-    // ======================
     const text = req.file.buffer.toString("utf-8");
 
-    const response = await axios.post(
-      HF_API + "google/flan-t5-base",
-      {
-        inputs: `Summarize this file:\n\n${text.slice(0, 2000)}`
+    const HF_URL =
+      "https://api-inference.huggingface.co/models/google/flan-t5-base";
+
+    console.log("CALLING HF:", HF_URL);
+
+    const response = await axios({
+      method: "POST",
+      url: HF_URL,
+      headers: {
+        Authorization: `Bearer ${process.env.HF_API_KEY}`,
       },
-      {
-        headers: {
-          Authorization: `Bearer ${HF_KEY}`
-        }
-      }
-    );
+      data: {
+        inputs: text.slice(0, 1000),
+      },
+    });
 
     return res.json({
-      mode: "text",
-      result: response.data[0]?.generated_text || response.data
+      ok: true,
+      result: response.data,
     });
 
   } catch (err) {
-    console.error(err.response?.data || err.message);
+    console.log("AXIOS ERROR URL:", err.config?.url);
+    console.log("AXIOS DETAILS:", err.response?.data || err.message);
 
-    res.status(500).json({
+    return res.status(500).json({
       error: err.message,
-      details: err.response?.data || null
+      debug_url: err.config?.url,
+      details: err.response?.data || null,
     });
   }
 });
 
-// 🚀 start server
+// ✅ Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log("Server running on port", PORT);

@@ -16,16 +16,19 @@ async function uploadFile() {
   status.innerText = "Uploading...";
 
   try {
-    const res = await fetch("https://ai-analyzer-htk8.onrender.com/upload", {
-      method: "POST",
-      body: formData
-    });
+    const res = await fetch(
+      "https://ai-analyzer-htk8.onrender.com/upload",
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
 
     const data = await res.json();
 
     status.innerText = "Done";
 
-    result.innerText = data.result || JSON.stringify(data, null, 2);
+    result.innerText = JSON.stringify(data, null, 2);
 
   } catch (err) {
     status.innerText = "Error";
