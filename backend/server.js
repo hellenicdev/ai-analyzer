@@ -18,35 +18,19 @@ app.get("/", (req, res) => {
 });
 
 // 📦 upload route
-app.post("/upload", upload.single("file"), async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
-    }
+app.post("/upload", upload.single("file"), (req, res) => {
+  console.log("UPLOAD HIT");
 
-    const mime = req.file.mimetype;
+  if (!req.file) {
+    return res.status(400).json({ error: "No file" });
+  }
 
-    // ======================
-    // 🖼 IMAGE MODE
-    // ======================
-    if (mime.startsWith("image/")) {
-      const base64 = req.file.buffer.toString("base64");
-
-      const response = await axios.post(
-        HF_API + "Salesforce/blip-image-captioning-base",
-        { inputs: base64 },
-        {
-          headers: {
-            Authorization: `Bearer ${HF_KEY}`
-          }
-        }
-      );
-
-      return res.json({
-        mode: "image",
-        result: response.data[0]?.generated_text || response.data
-      });
-    }
+  res.json({
+    ok: true,
+    filename: req.file.originalname,
+    size: req.file.size
+  });
+});
 
     // ======================
     // 📄 TEXT MODE
