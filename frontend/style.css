@@ -1,69 +1,462 @@
-body {
+/* ── Reset & Base ─────────────────────────────────────────── */
+*, *::before, *::after {
   margin: 0;
-  font-family: Arial, sans-serif;
-  background: #0f0f1a;
-  color: white;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #0b0b14;
+  --surface: #14141f;
+  --surface-hover: #1c1c2e;
+  --border: #2a2a3e;
+  --border-light: #3a3a52;
+  --accent: #7c6aff;
+  --accent-hover: #9685ff;
+  --accent-glow: rgba(124, 106, 255, 0.25);
+  --text: #e8e8f0;
+  --text-muted: #8888a0;
+  --text-dim: #5a5a72;
+  --success: #4ade80;
+  --error: #f87171;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --transition: 0.2s ease;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen,
+    Ubuntu, Cantarell, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
   display: flex;
   justify-content: center;
-  align-items: center;
-  height: 100vh;
+  padding: 24px;
+  line-height: 1.5;
 }
 
+/* ── Layout ─────────────────────────────────────────────── */
 .app {
-  width: 420px;
-  text-align: center;
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
+/* ── Header ─────────────────────────────────────────────── */
+.header {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.logo {
+  width: 56px;
+  height: auto;
+  margin-bottom: 8px;
+  border-radius: 12px;
+}
+
+.header h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, var(--accent), #b096ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-top: 4px;
+}
+
+/* ── Dropzone ───────────────────────────────────────────── */
 .dropzone {
-  margin: 20px 0;
-  padding: 40px;
-  border: 2px dashed #6c63ff;
-  border-radius: 15px;
+  background: var(--surface);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
+  padding: 48px 24px;
+  text-align: center;
   cursor: pointer;
-  transition: 0.3s;
-  background: rgba(255,255,255,0.03);
+  transition: border-color var(--transition), background var(--transition), transform var(--transition);
+  position: relative;
 }
 
 .dropzone:hover {
-  background: rgba(108,99,255,0.1);
-  transform: scale(1.02);
+  border-color: var(--accent);
+  background: var(--surface-hover);
 }
 
-button {
-  padding: 10px 20px;
-  border: none;
-  background: #6c63ff;
-  color: white;
-  border-radius: 10px;
-  cursor: pointer;
-  margin-top: 10px;
+.dropzone.dragover {
+  border-color: var(--accent);
+  background: rgba(124, 106, 255, 0.08);
+  transform: scale(1.01);
 }
 
-button:hover {
-  background: #574fd6;
+.dropzone.has-file {
+  padding: 20px 24px;
+  cursor: default;
+  border-style: solid;
+  border-color: var(--border-light);
 }
 
-#status {
-  margin-top: 15px;
-  font-size: 14px;
-  opacity: 0.8;
+.dropzone-icon {
+  color: var(--text-muted);
+  margin-bottom: 12px;
 }
 
-#result {
-  margin-top: 20px;
+.dropzone.dragover .dropzone-icon {
+  color: var(--accent);
+}
+
+.dropzone-text {
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.dropzone-link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.dropzone-hint {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  margin-top: 6px;
+}
+
+.hidden-input {
+  display: none;
+}
+
+/* ── File Info ──────────────────────────────────────────── */
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   text-align: left;
-  white-space: pre-wrap;
-  background: rgba(255,255,255,0.05);
-  padding: 15px;
-  border-radius: 10px;
-  min-height: 80px;
 }
 
-.site-logo {
-  position: fixed;   /* stays visible at all times */
-  top: 10px;
-  left: 10px;
-  width: 60px;       /* adjust size */
-  height: auto;
-  z-index: 9999;     /* stays above everything */
+.file-info-icon {
+  color: var(--accent);
+  flex-shrink: 0;
+  display: flex;
+}
+
+.file-info-details {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.file-info-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-info-size {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.file-info-remove {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: color var(--transition), background var(--transition);
+  flex-shrink: 0;
+  display: flex;
+}
+
+.file-info-remove:hover {
+  color: var(--error);
+  background: rgba(248, 113, 113, 0.1);
+}
+
+/* ── Controls ───────────────────────────────────────────── */
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.control-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.select-wrapper {
+  position: relative;
+}
+
+.select-wrapper::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 10px;
+  border-right: 2px solid var(--text-muted);
+  border-bottom: 2px solid var(--text-muted);
+  rotate: 45deg;
+  pointer-events: none;
+  margin-top: -5px;
+}
+
+select {
+  width: 100%;
+  padding: 10px 36px 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color var(--transition);
+}
+
+select:hover {
+  border-color: var(--border-light);
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* ── Button ─────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 24px;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--transition), transform var(--transition), box-shadow var(--transition);
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px var(--accent-glow);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-spinner svg {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { rotate: 360deg; }
+}
+
+/* ── Status ─────────────────────────────────────────────── */
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+}
+
+.status.success {
+  background: rgba(74, 222, 128, 0.08);
+  color: var(--success);
+}
+
+.status.error {
+  background: rgba(248, 113, 113, 0.08);
+  color: var(--error);
+}
+
+.status.loading {
+  background: rgba(124, 106, 255, 0.08);
+  color: var(--accent);
+}
+
+/* ── Result ─────────────────────────────────────────────── */
+.result {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.result-header h3 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.result-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  transition: color var(--transition), background var(--transition);
+}
+
+.btn-icon:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.btn-icon.copied {
+  color: var(--success);
+}
+
+.result-type {
+  padding: 8px 16px;
+  font-size: 0.75rem;
+  color: var(--accent);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.result-body {
+  padding: 0 16px 16px;
+  font-size: 0.9rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text);
+}
+
+.result-body .label {
+  color: var(--text-muted);
+  font-weight: 600;
+  display: inline-block;
+  margin-right: 6px;
+}
+
+.result-body .sentiment-label {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.result-body .sentiment-label.positive { background: rgba(74, 222, 128, 0.15); color: var(--success); }
+.result-body .sentiment-label.negative { background: rgba(248, 113, 113, 0.15); color: var(--error); }
+.result-body .sentiment-label.neutral  { background: rgba(148, 148, 180, 0.15); color: var(--text-muted); }
+
+.result-body .topic-tag {
+  display: inline-block;
+  padding: 3px 10px;
+  background: rgba(124, 106, 255, 0.12);
+  color: var(--accent);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin: 2px 4px 2px 0;
+}
+
+.result-body ul {
+  list-style: none;
+  padding: 0;
+}
+
+.result-body li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.result-body li:last-child {
+  border-bottom: none;
+}
+
+/* ── Footer ─────────────────────────────────────────────── */
+.footer {
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Utilities ──────────────────────────────────────────── */
+.hidden {
+  display: none !important;
+}
+
+/* ── Responsive ─────────────────────────────────────────── */
+@media (max-width: 480px) {
+  body {
+    padding: 16px;
+  }
+
+  .dropzone {
+    padding: 32px 16px;
+  }
+
+  .dropzone.has-file {
+    padding: 16px;
+  }
+
+  .header h1 {
+    font-size: 1.35rem;
+  }
 }

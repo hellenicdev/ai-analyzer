@@ -1,27 +1,111 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>AI File Upload</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="AI Analyzer — Upload files and get instant AI-powered analysis." />
+  <title>AI Analyzer</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>" />
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div class="app">
+    <header class="header">
+      <img src="https://hellenicdev.github.io/logo.webp" alt="HellenicDev" class="logo" />
+      <h1>AI Analyzer</h1>
+      <p class="subtitle">Upload a file and let AI analyze it</p>
+    </header>
 
-<a href="/">
-  <img src="https://hellenicdev.github.io/logo.webp" alt="Logo" class="site-logo">
-</a>
+    <main>
+      <!-- Drop Zone -->
+      <div class="dropzone" id="dropzone">
+        <div class="dropzone-content" id="dropzoneContent">
+          <div class="dropzone-icon">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+          </div>
+          <p class="dropzone-text">Drop a file here or <span class="dropzone-link">browse</span></p>
+          <p class="dropzone-hint">Supports .txt, .md, .csv, .json, .log, .xml, .yaml</p>
+        </div>
+        <div class="file-info hidden" id="fileInfo">
+          <div class="file-info-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
+          </div>
+          <div class="file-info-details">
+            <span class="file-info-name" id="fileName"></span>
+            <span class="file-info-size" id="fileSize"></span>
+          </div>
+          <button class="file-info-remove" id="removeFile" aria-label="Remove file">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+        </div>
+        <input type="file" id="fileInput" class="hidden-input" accept=".txt,.md,.csv,.json,.log,.xml,.yaml,.yml" />
+      </div>
 
-  <h2>AI File Analyzer</h2>
+      <!-- Analysis Type -->
+      <div class="controls">
+        <label class="control-label" for="analysisType">Analysis Type</label>
+        <div class="select-wrapper">
+          <select id="analysisType">
+            <option value="summarize">Summarize</option>
+            <option value="sentiment">Sentiment Analysis</option>
+            <option value="zero-shot">Topic Classification</option>
+          </select>
+        </div>
+      </div>
 
-  <input type="file" id="fileInput">
-  <button onclick="uploadFile()">Upload</button>
+      <!-- Upload Button -->
+      <button class="btn" id="uploadBtn" disabled>
+        <span class="btn-text" id="btnText">Analyze File</span>
+        <span class="btn-spinner hidden" id="btnSpinner">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <circle cx="12" cy="12" r="10" stroke-dasharray="31.4 31.4" stroke-linecap="round" />
+          </svg>
+        </span>
+      </button>
 
-  <p id="status"></p>
-  <pre id="result"></pre>
+      <!-- Status -->
+      <div class="status hidden" id="status">
+        <span class="status-icon" id="statusIcon"></span>
+        <span id="statusText"></span>
+      </div>
+
+      <!-- Result -->
+      <div class="result hidden" id="result">
+        <div class="result-header">
+          <h3>Analysis Result</h3>
+          <div class="result-actions">
+            <button class="btn-icon" id="copyBtn" aria-label="Copy result" title="Copy">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+              </svg>
+            </button>
+            <button class="btn-icon" id="clearBtn" aria-label="Clear result" title="Clear">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="result-type" id="resultType"></div>
+        <div class="result-body" id="resultBody"></div>
+      </div>
+    </main>
+
+    <footer class="footer">
+      &copy; 2025&ndash;2026 HellenicDev &mdash; All projects and content belong to HellenicDev.
+    </footer>
+  </div>
 
   <script src="script.js"></script>
 </body>
-<footer style="position: fixed; bottom: 0; left: 0; width: 100%; z-index: 9999; text-align: center; font-size: 14px; color: gray; background: white;
-">
-  c 2025-2026 HellenicDev - All projects and content belong to HellenicDev.
-</footer>
 </html>
