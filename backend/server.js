@@ -2,8 +2,29 @@ const express = require("express");
 const multer = require("multer");
 const cors = require("cors");
 const morgan = require("morgan");
+const https = require("https");
+const dns = require("dns");
 const axios = require("axios");
 require("dotenv").config();
+
+const httpsAgent = new https.Agent({
+  keepAlive: true,
+  family: 4,
+});
+
+async function resolveHF() {
+  return new Promise((resolve) => {
+    dns.resolve4("api-inference.huggingface.co", (err, addresses) => {
+      if (err) {
+        console.warn("DNS resolution for HF API failed:", err.code);
+        resolve(false);
+      } else {
+        console.log("HF API resolved to:", addresses);
+        resolve(true);
+      }
+    });
+  });
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -84,6 +105,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     const response = await axios({
       method: "POST",
       url: HF_URL,
+      httpsAgent,
       headers: { Authorization: `Bearer ${process.env.HF_API_KEY}` },
       data: input,
       timeout: 30000,
@@ -110,9 +132,29 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     if (err.message?.includes("Unsupported file type")) {
       return res.status(415).json({ error: err.message });
     }
+
+    let category = "unknown";
+    let detail = err.message;
+
+    if (err.code === "ENOTFOUND" || err.code === "EAI_AGAIN") {
+      category = "dns";
+      detail = `Cannot resolve Hugging Face API domain (${err.code}). Check server DNS / network connectivity.`;
+      resolveHF();
+    } else if (err.code === "ECONNREFUSED" || err.code === "ECONNRESET" || err.code === "ETIMEDOUT") {
+      category = "network";
+      detail = `Cannot connect to Hugging Face API (${err.code}). The service may be down or blocked.`;
+    } else if (err.response) {
+      category = "api";
+      detail = err.response.data?.error || `HTTP ${err.response.status}`;
+    } else if (err.code === "ECONNABORTED") {
+      category = "timeout";
+      detail = "Hugging Face API took too long to respond.";
+    }
+
     res.status(500).json({
       error: "Analysis failed",
-      detail: err.response?.data?.error || err.message,
+      category,
+      detail,
     });
   }
 });
