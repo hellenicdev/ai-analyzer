@@ -8,19 +8,17 @@ const axios = require("axios");
 require("dotenv").config();
 
 const HF_HOST = "api-inference.huggingface.co";
-const DOH_URL = `https://cloudflare-dns.com/dns-query?name=${HF_HOST}&type=A`;
-
 let HF_IP = null;
 
-// Prepend public DNS servers for environments where system DNS is restricted
-try {
-  const current = dns.getServers();
-  const publicDNS = ["1.1.1.1", "8.8.8.8"];
-  const merged = [...new Set([...publicDNS, ...current])];
-  dns.setServers(merged);
-} catch (_) { /* not all environments allow setServers */ }
+const DOH_PROVIDERS = [
+  { name: "Cloudflare", ip: "1.1.1.1", host: "cloudflare-dns.com" },
+  { name: "Cloudflare B", ip: "1.0.0.1", host: "cloudflare-dns.com" },
+  { name: "Google", ip: "8.8.8.8", host: "dns.google" },
+  { name: "Google B", ip: "8.8.4.4", host: "dns.google" },
+];
 
-const httpsAgent = new https.Agent({
+// Agent for HF API — uses cached IP to bypass DNS
+const hfAgent = new https.Agent({
   keepAlive: true,
   lookup(hostname, opts, cb) {
     if (hostname === HF_HOST && HF_IP) {
@@ -30,42 +28,49 @@ const httpsAgent = new https.Agent({
   },
 });
 
-async function resolveHF(retries = 2) {
-  for (let attempt = 0; attempt <= retries; attempt++) {
-    // Try system DNS first
-    try {
-      const addrs = await dns.promises.resolve4(HF_HOST);
-      if (addrs.length) {
-        HF_IP = addrs[0];
-        console.log(`HF API resolved via DNS: ${HF_IP}`);
-        return true;
-      }
-    } catch (err) {
-      if (attempt === 0) console.warn(`System DNS failed (${err.code}), trying DoH...`);
+function dohAgent(dohIp) {
+  return new https.Agent({
+    keepAlive: false,
+    lookup: (hostname, _opts, cb) => cb(null, dohIp, 4),
+  });
+}
+
+async function resolveHF() {
+  // Try system DNS first
+  try {
+    const addrs = await dns.promises.resolve4(HF_HOST);
+    if (addrs.length) {
+      HF_IP = addrs[0];
+      console.log(`HF API resolved via system DNS: ${HF_IP}`);
+      return;
     }
-    // Fallback to DNS-over-HTTPS (bypasses system resolver)
+  } catch (_) {}
+
+  // DNS-over-HTTPS by hardcoded IP — no DNS needed
+  for (const doh of DOH_PROVIDERS) {
     try {
-      const res = await axios.get(DOH_URL, {
+      const url = `https://${doh.host}/dns-query?name=${HF_HOST}&type=A`;
+      const res = await axios.get(url, {
         headers: { Accept: "application/dns-json" },
+        httpsAgent: dohAgent(doh.ip),
         timeout: 5000,
       });
       const answer = (res.data.Answer || []).find((a) => a.type === 1);
       if (answer) {
         HF_IP = answer.data;
-        console.log(`HF API resolved via DoH: ${HF_IP}`);
-        return true;
+        console.log(`HF API resolved via DoH (${doh.name}): ${HF_IP}`);
+        return;
       }
     } catch (e) {
-      if (attempt < retries) {
-        await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
-      }
+      console.warn(`DoH ${doh.name} failed: ${e.message.slice(0, 60)}`);
     }
   }
-  console.warn("HF API DNS resolution failed after all attempts");
-  return false;
+
+  console.error("HF API DNS: all resolution methods exhausted.");
 }
 
 resolveHF();
+setInterval(resolveHF, 300_000);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -146,7 +151,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     const response = await axios({
       method: "POST",
       url: HF_URL,
-      httpsAgent,
+      httpsAgent: hfAgent,
       headers: { Authorization: `Bearer ${process.env.HF_API_KEY}` },
       data: input,
       timeout: 30000,
