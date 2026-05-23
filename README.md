@@ -45,7 +45,7 @@ npx serve frontend
 
 | Variable      | Required | Description |
 |---------------|----------|-------------|
-| `HF_API_KEY`  | Yes      | [Hugging Face API token](https://huggingface.co/settings/tokens) |
+| `HF_API_KEY`  | Yes      | [Hugging Face token](https://huggingface.co/settings/tokens) with **Inference Providers** permission |
 | `PORT`        | No       | Server port (default `3000`) |
 
 ## API
@@ -56,7 +56,7 @@ Health check — returns available models and endpoints.
 
 ### `POST /upload?type=<mode>`
 
-Upload a file for AI analysis. Accepted modes:
+Upload a file for AI analysis via Hugging Face's Inference Providers router. Accepted modes:
 
 | `type` parameter | Description |
 |------------------|-------------|
