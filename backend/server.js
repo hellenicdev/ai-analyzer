@@ -2,75 +2,10 @@ const express = require("express");
 const multer = require("multer");
 const cors = require("cors");
 const morgan = require("morgan");
-const https = require("https");
-const dns = require("dns");
 const axios = require("axios");
 require("dotenv").config();
 
-const HF_HOST = "api-inference.huggingface.co";
-let HF_IP = null;
-
-const DOH_PROVIDERS = [
-  { name: "Cloudflare", ip: "1.1.1.1", host: "cloudflare-dns.com" },
-  { name: "Cloudflare B", ip: "1.0.0.1", host: "cloudflare-dns.com" },
-  { name: "Google", ip: "8.8.8.8", host: "dns.google" },
-  { name: "Google B", ip: "8.8.4.4", host: "dns.google" },
-];
-
-// Agent for HF API — uses cached IP to bypass DNS
-const hfAgent = new https.Agent({
-  keepAlive: true,
-  lookup(hostname, opts, cb) {
-    if (hostname === HF_HOST && HF_IP) {
-      return cb(null, HF_IP, 4);
-    }
-    dns.lookup(hostname, opts, cb);
-  },
-});
-
-function dohAgent(dohIp) {
-  return new https.Agent({
-    keepAlive: false,
-    lookup: (hostname, _opts, cb) => cb(null, dohIp, 4),
-  });
-}
-
-async function resolveHF() {
-  // Try system DNS first
-  try {
-    const addrs = await dns.promises.resolve4(HF_HOST);
-    if (addrs.length) {
-      HF_IP = addrs[0];
-      console.log(`HF API resolved via system DNS: ${HF_IP}`);
-      return;
-    }
-  } catch (_) {}
-
-  // DNS-over-HTTPS by hardcoded IP — no DNS needed
-  for (const doh of DOH_PROVIDERS) {
-    try {
-      const url = `https://${doh.host}/dns-query?name=${HF_HOST}&type=A`;
-      const res = await axios.get(url, {
-        headers: { Accept: "application/dns-json" },
-        httpsAgent: dohAgent(doh.ip),
-        timeout: 5000,
-      });
-      const answer = (res.data.Answer || []).find((a) => a.type === 1);
-      if (answer) {
-        HF_IP = answer.data;
-        console.log(`HF API resolved via DoH (${doh.name}): ${HF_IP}`);
-        return;
-      }
-    } catch (e) {
-      console.warn(`DoH ${doh.name} failed: ${e.message.slice(0, 60)}`);
-    }
-  }
-
-  console.error("HF API DNS: all resolution methods exhausted.");
-}
-
-resolveHF();
-setInterval(resolveHF, 300_000);
+const HF_BASE = "https://router.huggingface.co/hf-inference";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -140,7 +75,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     }
 
     const model = HF_MODELS[analysisType];
-    const HF_URL = `https://api-inference.huggingface.co/models/${model}`;
+    const HF_URL = `${HF_BASE}/models/${model}`;
     const truncatedText = text.slice(0, 2000);
 
     const input =
@@ -151,7 +86,6 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     const response = await axios({
       method: "POST",
       url: HF_URL,
-      httpsAgent: hfAgent,
       headers: { Authorization: `Bearer ${process.env.HF_API_KEY}` },
       data: input,
       timeout: 30000,
@@ -182,13 +116,15 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     let category = "unknown";
     let detail = err.message;
 
-    if (err.code === "ENOTFOUND" || err.code === "EAI_AGAIN" || err.code === "ENODATA") {
+    if (err.response?.status === 401) {
+      category = "auth";
+      detail = "Hugging Face token rejected by the new router. Generate a token with 'Inference Providers' permission at https://huggingface.co/settings/tokens";
+    } else if (err.code === "ENOTFOUND" || err.code === "EAI_AGAIN" || err.code === "ENODATA") {
       category = "dns";
-      detail = `Cannot resolve Hugging Face API domain (${err.code}).`;
-      resolveHF(); // retry DNS in background
+      detail = `Cannot resolve Hugging Face API (${err.code}).`;
     } else if (err.code === "ECONNREFUSED" || err.code === "ECONNRESET" || err.code === "ETIMEDOUT") {
       category = "network";
-      detail = `Cannot connect to Hugging Face API (${err.code}). The service may be down or blocked.`;
+      detail = `Cannot connect to Hugging Face API (${err.code}).`;
     } else if (err.response) {
       category = "api";
       detail = err.response.data?.error || `HTTP ${err.response.status}`;
