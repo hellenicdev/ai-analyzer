@@ -7,24 +7,65 @@ const dns = require("dns");
 const axios = require("axios");
 require("dotenv").config();
 
+const HF_HOST = "api-inference.huggingface.co";
+const DOH_URL = `https://cloudflare-dns.com/dns-query?name=${HF_HOST}&type=A`;
+
+let HF_IP = null;
+
+// Prepend public DNS servers for environments where system DNS is restricted
+try {
+  const current = dns.getServers();
+  const publicDNS = ["1.1.1.1", "8.8.8.8"];
+  const merged = [...new Set([...publicDNS, ...current])];
+  dns.setServers(merged);
+} catch (_) { /* not all environments allow setServers */ }
+
 const httpsAgent = new https.Agent({
   keepAlive: true,
-  family: 4,
+  lookup(hostname, opts, cb) {
+    if (hostname === HF_HOST && HF_IP) {
+      return cb(null, HF_IP, 4);
+    }
+    dns.lookup(hostname, opts, cb);
+  },
 });
 
-async function resolveHF() {
-  return new Promise((resolve) => {
-    dns.resolve4("api-inference.huggingface.co", (err, addresses) => {
-      if (err) {
-        console.warn("DNS resolution for HF API failed:", err.code);
-        resolve(false);
-      } else {
-        console.log("HF API resolved to:", addresses);
-        resolve(true);
+async function resolveHF(retries = 2) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    // Try system DNS first
+    try {
+      const addrs = await dns.promises.resolve4(HF_HOST);
+      if (addrs.length) {
+        HF_IP = addrs[0];
+        console.log(`HF API resolved via DNS: ${HF_IP}`);
+        return true;
       }
-    });
-  });
+    } catch (err) {
+      if (attempt === 0) console.warn(`System DNS failed (${err.code}), trying DoH...`);
+    }
+    // Fallback to DNS-over-HTTPS (bypasses system resolver)
+    try {
+      const res = await axios.get(DOH_URL, {
+        headers: { Accept: "application/dns-json" },
+        timeout: 5000,
+      });
+      const answer = (res.data.Answer || []).find((a) => a.type === 1);
+      if (answer) {
+        HF_IP = answer.data;
+        console.log(`HF API resolved via DoH: ${HF_IP}`);
+        return true;
+      }
+    } catch (e) {
+      if (attempt < retries) {
+        await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)));
+      }
+    }
+  }
+  console.warn("HF API DNS resolution failed after all attempts");
+  return false;
 }
+
+resolveHF();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -136,10 +177,10 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     let category = "unknown";
     let detail = err.message;
 
-    if (err.code === "ENOTFOUND" || err.code === "EAI_AGAIN") {
+    if (err.code === "ENOTFOUND" || err.code === "EAI_AGAIN" || err.code === "ENODATA") {
       category = "dns";
-      detail = `Cannot resolve Hugging Face API domain (${err.code}). Check server DNS / network connectivity.`;
-      resolveHF();
+      detail = `Cannot resolve Hugging Face API domain (${err.code}).`;
+      resolveHF(); // retry DNS in background
     } else if (err.code === "ECONNREFUSED" || err.code === "ECONNRESET" || err.code === "ETIMEDOUT") {
       category = "network";
       detail = `Cannot connect to Hugging Face API (${err.code}). The service may be down or blocked.`;
