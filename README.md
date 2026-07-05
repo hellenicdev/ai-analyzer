@@ -1,4 +1,5 @@
 # ai-analyzer
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/S6S31XB030)
 
 Upload text files and get instant AI-powered analysis — summarization, sentiment, or topic classification.
 
