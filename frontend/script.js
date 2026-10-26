@@ -1,4 +1,7 @@
 const API_URL = "https://ai-analyzer-htk8.onrender.com";
+// Leave empty to skip Cloudflare Turnstile. Set the site key only when
+// TURNSTILE_SECRET_KEY is also set on the API.
+const TURNSTILE_SITE_KEY = "";
 
 const dropzone = document.getElementById("dropzone");
 const dropzoneContent = document.getElementById("dropzoneContent");
@@ -90,11 +93,36 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && !uploadBtn.disabled) uploadFile();
 });
 
+function readTurnstileToken() {
+  if (!TURNSTILE_SITE_KEY) return "";
+  return window.turnstile?.getResponse() || null;
+}
+
+function initTurnstile() {
+  if (!TURNSTILE_SITE_KEY) return;
+  const widget = document.getElementById("turnstileWidget");
+  widget.classList.remove("hidden");
+  const script = document.createElement("script");
+  script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+  script.async = true;
+  script.onload = () => {
+    window.turnstile.render(widget, { sitekey: TURNSTILE_SITE_KEY, theme: "dark" });
+  };
+  document.head.appendChild(script);
+}
+
 async function uploadFile() {
   if (!selectedFile) return;
 
+  const turnstileToken = readTurnstileToken();
+  if (turnstileToken === null) {
+    showStatus("error", "Complete the verification check first.");
+    return;
+  }
+
   const formData = new FormData();
   formData.append("file", selectedFile);
+  if (turnstileToken) formData.append("cf-turnstile-response", turnstileToken);
   const type = analysisType.value;
 
   setLoading(true);
@@ -108,7 +136,7 @@ async function uploadFile() {
     const data = await res.json();
 
     if (!res.ok || !data.ok) {
-      throw new Error(data.error || data.detail || "Request failed");
+      throw new Error(data.error || "Request failed");
     }
 
     showResult(type, data);
@@ -116,6 +144,7 @@ async function uploadFile() {
   } catch (err) {
     showStatus("error", err.message);
   } finally {
+    if (TURNSTILE_SITE_KEY && window.turnstile) window.turnstile.reset();
     setLoading(false);
   }
 }
@@ -183,10 +212,15 @@ function renderSentiment(result) {
     const pct = (score * 100).toFixed(1);
 
     const li = document.createElement("li");
-    li.innerHTML = `
-      <span class="sentiment-label ${label}">${label}</span>
-      <span>${pct}%</span>
-    `;
+    const labelSpan = document.createElement("span");
+    labelSpan.className = "sentiment-label";
+    if (label === "positive" || label === "negative" || label === "neutral") {
+      labelSpan.classList.add(label);
+    }
+    labelSpan.textContent = label;
+    const scoreSpan = document.createElement("span");
+    scoreSpan.textContent = pct + "%";
+    li.append(labelSpan, scoreSpan);
     ul.appendChild(li);
   });
   resultBody.appendChild(ul);
@@ -202,10 +236,12 @@ function renderZeroShot(result) {
     labels.forEach((label, i) => {
       const pct = (scores[i] * 100).toFixed(1);
       const li = document.createElement("li");
-      li.innerHTML = `
-        <span class="topic-tag">${label}</span>
-        <span>${pct}%</span>
-      `;
+      const tag = document.createElement("span");
+      tag.className = "topic-tag";
+      tag.textContent = String(label);
+      const scoreSpan = document.createElement("span");
+      scoreSpan.textContent = pct + "%";
+      li.append(tag, scoreSpan);
       ul.appendChild(li);
     });
     resultBody.appendChild(ul);
@@ -236,3 +272,5 @@ copyBtn.addEventListener("click", async () => {
 clearBtn.addEventListener("click", () => {
   hideResult();
 });
+
+initTurnstile();
