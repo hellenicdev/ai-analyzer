@@ -3,17 +3,42 @@ const multer = require("multer");
 const cors = require("cors");
 const morgan = require("morgan");
 const axios = require("axios");
+const rateLimit = require("express-rate-limit");
 require("dotenv").config();
 
 const HF_BASE = "https://router.huggingface.co/hf-inference";
+const TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const CORS_ORIGIN = (process.env.CORS_ORIGIN || "https://hellenicdev.eu").trim();
 
-app.use(cors());
+// Render sits behind one proxy. A numeric hop count keeps the client IP
+// rate limit from trusting a spoofed X-Forwarded-For chain.
+app.set("trust proxy", 1);
+
+app.use(
+  cors({
+    origin(requestOrigin, callback) {
+      if (requestOrigin === CORS_ORIGIN) {
+        callback(null, CORS_ORIGIN);
+      } else {
+        callback(null, false);
+      }
+    },
+  })
+);
 app.use(morgan("short"));
 app.use(express.json());
+
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests. Try again later." },
+});
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -43,6 +68,41 @@ function validateEnv() {
 }
 validateEnv();
 
+async function verifyTurnstile(req) {
+  const secret = (process.env.TURNSTILE_SECRET_KEY || "").trim();
+  if (!secret) return;
+
+  const token = req.body?.["cf-turnstile-response"];
+  if (!token || typeof token !== "string") {
+    const error = new Error("Missing Turnstile token");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const body = new URLSearchParams({ secret, response: token });
+  if (req.ip) body.set("remoteip", req.ip);
+
+  let verify;
+  try {
+    verify = await axios.post(TURNSTILE_VERIFY_URL, body.toString(), {
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      timeout: 10000,
+    });
+  } catch (err) {
+    console.error("Turnstile verify error:", err.message);
+    const error = new Error("Turnstile unavailable");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  if (!verify.data?.success) {
+    console.error("Turnstile rejected:", verify.data?.["error-codes"]);
+    const error = new Error("Turnstile rejected");
+    error.statusCode = 403;
+    throw error;
+  }
+}
+
 app.get("/", (_req, res) => {
   res.json({
     ok: true,
@@ -55,8 +115,10 @@ app.get("/", (_req, res) => {
   });
 });
 
-app.post("/upload", upload.single("file"), async (req, res) => {
+app.post("/upload", uploadLimiter, upload.single("file"), async (req, res) => {
   try {
+    await verifyTurnstile(req);
+
     if (!req.file) {
       return res.status(400).json({ error: "No file uploaded. Use field name 'file'." });
     }
@@ -106,6 +168,9 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     });
   } catch (err) {
     console.error("Upload error:", err.message);
+    if (err.statusCode === 403) {
+      return res.status(403).json({ error: "Verification failed" });
+    }
     if (err.code === "LIMIT_FILE_SIZE") {
       return res.status(413).json({ error: `File too large. Max: ${MAX_FILE_SIZE / 1024 / 1024}MB` });
     }
@@ -113,31 +178,7 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       return res.status(415).json({ error: err.message });
     }
 
-    let category = "unknown";
-    let detail = err.message;
-
-    if (err.response?.status === 401) {
-      category = "auth";
-      detail = "Hugging Face token rejected by the new router. Generate a token with 'Inference Providers' permission at https://huggingface.co/settings/tokens";
-    } else if (err.code === "ENOTFOUND" || err.code === "EAI_AGAIN" || err.code === "ENODATA") {
-      category = "dns";
-      detail = `Cannot resolve Hugging Face API (${err.code}).`;
-    } else if (err.code === "ECONNREFUSED" || err.code === "ECONNRESET" || err.code === "ETIMEDOUT") {
-      category = "network";
-      detail = `Cannot connect to Hugging Face API (${err.code}).`;
-    } else if (err.response) {
-      category = "api";
-      detail = err.response.data?.error || `HTTP ${err.response.status}`;
-    } else if (err.code === "ECONNABORTED") {
-      category = "timeout";
-      detail = "Hugging Face API took too long to respond.";
-    }
-
-    res.status(500).json({
-      error: "Analysis failed",
-      category,
-      detail,
-    });
+    res.status(500).json({ error: "Analysis failed" });
   }
 });
 
@@ -145,7 +186,7 @@ app.use((_req, res) => {
   res.status(404).json({ error: "Not found. Try POST /upload or GET /" });
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, "0.0.0.0", () => {
   console.log(`AI Analyzer API running on port ${PORT}`);
   console.log(`Models: ${Object.keys(HF_MODELS).join(", ")}`);
 });

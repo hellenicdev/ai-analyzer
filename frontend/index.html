@@ -4,6 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="AI Analyzer — Upload files and get instant AI-powered analysis." />
+  <link rel="canonical" href="https://hellenicdev.eu/ai-analyzer/frontend/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="AI Analyzer" />
+  <meta property="og:title" content="AI Analyzer" />
+  <meta property="og:description" content="AI Analyzer — Upload files and get instant AI-powered analysis." />
+  <meta property="og:url" content="https://hellenicdev.eu/ai-analyzer/frontend/" />
+  <meta property="og:image" content="https://hellenicdev.eu/logo.webp" />
   <title>AI Analyzer</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>" />
   <link rel="stylesheet" href="style.css" />
@@ -61,6 +68,9 @@
           </select>
         </div>
       </div>
+
+      <!-- Shown only when TURNSTILE_SITE_KEY is set in script.js -->
+      <div id="turnstileWidget" class="turnstile hidden"></div>
 
       <!-- Upload Button -->
       <button class="btn" id="uploadBtn" disabled>

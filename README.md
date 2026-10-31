@@ -44,10 +44,12 @@ npx serve frontend
 
 ## Environment Variables
 
-| Variable      | Required | Description |
-|---------------|----------|-------------|
-| `HF_API_KEY`  | Yes      | [Hugging Face token](https://huggingface.co/settings/tokens) with **Inference Providers** permission |
-| `PORT`        | No       | Server port (default `3000`) |
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `HF_API_KEY` | Yes | [Hugging Face token](https://huggingface.co/settings/tokens) with **Inference Providers** permission |
+| `PORT` | No | Server port (default `3000`) |
+| `CORS_ORIGIN` | No | Browser origin allowed to call the API (default `https://hellenicdev.eu`) |
+| `TURNSTILE_SECRET_KEY` | No | When set, `POST /upload` requires a Cloudflare Turnstile token. Also set `TURNSTILE_SITE_KEY` in `frontend/script.js`. |
 
 ## API
 
@@ -65,7 +67,7 @@ Upload a file for AI analysis via Hugging Face's Inference Providers router. Acc
 | `sentiment`      | Positive / Negative sentiment |
 | `zero-shot`      | Classify into topic categories |
 
-Accepts `.txt`, `.md`, `.csv`, `.json`, `.log`, `.xml`, `.yaml` files up to 5 MB.
+Accepts `.txt`, `.md`, `.csv`, `.json`, `.log`, `.xml`, `.yaml` files up to 5 MB. Limited to 10 requests per 15 minutes per IP. When `TURNSTILE_SECRET_KEY` is set, the multipart body must include a valid `cf-turnstile-response` field.
 
 ## Deployment
 
